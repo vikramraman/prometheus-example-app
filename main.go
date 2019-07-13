@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 
@@ -26,13 +28,26 @@ var (
 
 func main() {
 	bind := ""
+	num := 0
 	flagset := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flagset.StringVar(&bind, "bind", ":8080", "The socket to bind to.")
+	flagset.IntVar(&num, "num", 100, "The number of additional metrics to export.")
 	flagset.Parse(os.Args[1:])
 
 	r := prometheus.NewRegistry()
 	r.MustRegister(httpRequestsTotal)
 	r.MustRegister(version)
+
+	if num > 0 {
+		for i := 0; i < num; i++ {
+			metric := prometheus.NewCounter(prometheus.CounterOpts{
+				Name: fmt.Sprintf("prom_example_counter_%d", i),
+				Help: "additional counter",
+			})
+			metric.Add(rand.Float64()*100)
+			r.MustRegister(metric)
+		}
+	}
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
