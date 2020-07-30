@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -56,9 +57,23 @@ func main() {
 	notfound := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
-	http.Handle("/", promhttp.InstrumentHandlerCounter(httpRequestsTotal, handler))
-	http.Handle("/err", promhttp.InstrumentHandlerCounter(httpRequestsTotal, notfound))
 
-	http.Handle("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}))
-	log.Fatal(http.ListenAndServe(bind, nil))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", promhttp.InstrumentHandlerCounter(httpRequestsTotal, handler))
+	mux.HandleFunc("/err", promhttp.InstrumentHandlerCounter(httpRequestsTotal, notfound))
+	mux.HandleFunc("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}).ServeHTTP)
+
+	// serve kube-state-metrics
+	mux.HandleFunc("/ksm", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "/bin/kube_state_metrics")
+	})
+
+	s := &http.Server{
+		Addr:           ":8443",
+		Handler:        mux,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1048576
+	}
+	log.Fatal(s.ListenAndServeTLS("/ssl/prom-example.pem", "/ssl/prom-example.key"))
 }
