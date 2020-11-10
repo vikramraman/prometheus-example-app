@@ -7,9 +7,8 @@ OVERRIDE_IMAGE_NAME?=${PROM_EXAMPLE_IMAGE}
 
 all:
 	CGO_ENABLED=0 go build -o prometheus-example-app --installsuffix cgo main.go
-	docker build -t $(PREFIX)/$(DOCKER_IMAGE):$(VERSION) .
 
-build-linux:
+container:
 	CGO_ENABLED=0 GOOS=linux go build -o prometheus-example-app --installsuffix cgo main.go
 	docker build -t $(PREFIX)/$(DOCKER_IMAGE):$(VERSION) .
 ifneq ($(OVERRIDE_IMAGE_NAME),)

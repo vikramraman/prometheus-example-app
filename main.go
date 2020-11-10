@@ -61,10 +61,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", promhttp.InstrumentHandlerCounter(httpRequestsTotal, handler))
 	mux.HandleFunc("/err", promhttp.InstrumentHandlerCounter(httpRequestsTotal, notfound))
-	mux.HandleFunc("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}).ServeHTTP)
+	mux.HandleFunc("/counters", promhttp.HandlerFor(r, promhttp.HandlerOpts{}).ServeHTTP)
 
 	// serve sample_prom_metrics
-	mux.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "/bin/sample_metrics")
 	})
 
