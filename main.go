@@ -45,7 +45,7 @@ func main() {
 				Name: fmt.Sprintf("prom_example_counter_%d", i),
 				Help: "additional counter",
 			})
-			metric.Add(rand.Float64()*100)
+			metric.Add(rand.Float64() * 100)
 			r.MustRegister(metric)
 		}
 	}
@@ -63,9 +63,9 @@ func main() {
 	mux.HandleFunc("/err", promhttp.InstrumentHandlerCounter(httpRequestsTotal, notfound))
 	mux.HandleFunc("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}).ServeHTTP)
 
-	// serve kube-state-metrics
-	mux.HandleFunc("/ksm", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "/bin/kube_state_metrics")
+	// serve sample_prom_metrics
+	mux.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "/bin/sample_metrics")
 	})
 
 	s := &http.Server{
@@ -75,5 +75,5 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1048576
 	}
-	log.Fatal(s.ListenAndServeTLS("/ssl/prom-example.pem", "/ssl/prom-example.key"))
+	log.Fatal(s.ListenAndServe())
 }
