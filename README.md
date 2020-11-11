@@ -1,10 +1,11 @@
 # Prometheus Example App
 
-This example app serves as an example of how one can easily instrument HTTP handlers with [Prometheus][prometheus] metrics. It uses the Prometheus [go client][client-golang] to create a new Prometheus registry.
+This example app instruments HTTP handlers with [Prometheus](https://prometheus.io/) metrics using the Prometheus [go client](https://github.com/prometheus/client_golang).
 
-Usage is simple, on any request to `/` the request will result in a `200` response code. This increments the counter for this response code. Similarly the `/err` endpoint will result in a `404` response code, therefore increments that respective counter.
+Metrics are exposed via the following endpoints:
+* `/metrics`: Exposes various prometheus metrics (histograms, gauges, counters etc)
+* `/counters`: Exposes a configurable (using --num) number of counters
 
-A Docker image is available at: `quay.io/brancz/prometheus-example-app:v0.1.0`
+## Development
 
-[prometheus]:https://prometheus.io/
-[client-golang]:https://github.com/prometheus/client_golang
+Run `make container` to build a docker image.
