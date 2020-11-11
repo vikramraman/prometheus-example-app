@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prom-example-config
+  namespace: wavefront-collector
+  annotations:
+    wavefront.com/discovery-config: 'true'
+data:
+  collector.yaml: |
+    plugins:
+	# auto-discover metrics endpoint
+    - name: kube-state-metrics
+      type: prometheus
+      selectors:
+        images:
+        - '*/prom-example-app:*'
+      port: 8443
+      path: /metrics
+      scheme: http
