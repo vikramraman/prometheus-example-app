@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"strings"
@@ -28,7 +32,7 @@ type MetricPoint struct {
 }
 
 func main() {
-	t := time.NewTicker(10 * time.Second)
+	t := time.NewTicker(5 * time.Second)
 	for _ = range t.C {
 		scrape()
 	}
@@ -36,16 +40,122 @@ func main() {
 
 func scrape() {
 	client := http.Client{}
-	response, _ := client.Get("http://localhost:8443/metrics")
+	resp, err := client.Get("http://localhost:8443/metrics")
 
-	promMetrics := parse(response.Body)
+	if err != nil {
+		fmt.Errorf("%v", err)
+	}
+
+	defer func() {
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Errorf("incorrect status: %d", resp.StatusCode)
+	}
+
+	body, err := readResponse(resp.Body, resp.ContentLength)
+	if err != nil {
+		fmt.Errorf("incorrect read: %v", err)
+	}
+
+	// reduce intermediate storage during parsing
+	// reduce prometheus format memory during parsing
+	// reduce flush buffer size - string management
+
+	promMetrics := chunkedParsing(body)
+	//promMetrics := parse(resp.Body)
 	points := buildPoints(promMetrics)
 	report(points)
+}
+
+func readResponse(body io.ReadCloser, cLen int64) ([]byte, error) {
+	if cLen > 0 {
+		buf := bytes.NewBuffer(make([]byte, 0, cLen))
+		_, err := buf.ReadFrom(body)
+		if err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+	return ioutil.ReadAll(body)
+}
+
+func chunkedParsing(body []byte) map[string]*dto.MetricFamily {
+	// split on lines
+	// loopp to build metric until lookahead sees another comment
+	// parse chunk
+	// add results to results map
+	//TODO: chunks
+	// allocate buffer of size X
+
+
+
+	return nil
+}
+
+func readChunks(body io.ReadCloser) ([]byte, error) {
+	scanner := bufio.NewScanner(body)
+	scanner.Split(bufio.ScanLines)
+	var buf bytes.Buffer
+
+	// read 1000 lines at a time or till EOF
+	// after reading 1000 lines delegate to parseMetrics(buffer)
+	// make sure to reuse the same buffer
+	line := 0
+	lookAhead := scanner.Scan()
+	for scanner.Scan() {
+		if line < 1000 {
+			log.Infof("text: " + scanner.Text())
+			buf.Write(scanner.Bytes())
+			line++
+			continue
+		}
+		log.Infof("text: " + scanner.Text())
+		buf.Write(scanner.Bytes())
+		//buf.WriteString(scanner.Text())
+	}
+	fmt.Println(buf.String())
+}
+
+func readMetrics(scanner bufio.Scanner) {
+	buf := make([]byte, 0)
+	begin := true
+	for scanner.Scan() {
+		//TODO: check if we need to append EOL
+		line := scanner.Bytes()
+		if !begin && isComment(line) {
+			break
+		}
+		begin = false
+		buf = append(buf, line...)
+	}
+}
+
+func isComment() bool {
 
 }
 
-func parse(reader io.ReadCloser) map[string]*dto.MetricFamily {
-	parser := expfmt.TextParser{}
+//func readLinesTill(n int, scanner *bufio.Scanner) {
+//	var buf bytes.Buffer
+//	for line := 0; line < n; line++ {
+//		if scanner.Scan() {
+//			buf.Write(scanner.Bytes())
+//		}
+//	}
+//	scanner.
+//}
+
+func parse(buf []byte) map[string]*dto.MetricFamily {
+	var parser expfmt.TextParser
+
+	// parse even if the buffer begins with a newline
+	buf = bytes.TrimPrefix(buf, []byte("\n"))
+	// Read raw data
+	buffer := bytes.NewBuffer(buf)
+	reader := bufio.NewReader(buffer)
+
 	metrics, _ := parser.TextToMetricFamilies(reader)
 	return metrics
 }

@@ -68,7 +68,7 @@ func main() {
 	// serve sample_prom_metrics
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if local {
-			http.ServeFile(w, r, "./sample_prom_metrics")
+			http.ServeFile(w, r, "./kube_state_metrics")
 		} else {
 			http.ServeFile(w, r, "/bin/sample_metrics")
 		}
