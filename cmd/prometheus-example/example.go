@@ -30,9 +30,11 @@ var (
 func main() {
 	bind := ""
 	num := 0
+	local := false
 	flagset := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flagset.StringVar(&bind, "bind", ":8080", "The socket to bind to.")
 	flagset.IntVar(&num, "num", 100, "The number of additional metrics to export.")
+	flagset.BoolVar(&local, "local", false, "Whether the app is running locally (not as a container)")
 	flagset.Parse(os.Args[1:])
 
 	r := prometheus.NewRegistry()
@@ -65,7 +67,11 @@ func main() {
 
 	// serve sample_prom_metrics
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "/bin/sample_metrics")
+		if local {
+			http.ServeFile(w, r, "./sample_prom_metrics")
+		} else {
+			http.ServeFile(w, r, "/bin/sample_metrics")
+		}
 	})
 
 	s := &http.Server{
