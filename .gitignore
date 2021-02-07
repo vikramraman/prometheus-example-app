@@ -1,5 +1,4 @@
 prometheus-example-app
 prometheus-scraper
 .idea/
-ssl/
 kube_state_metrics
